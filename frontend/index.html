@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AWS Notes Sharing (Minimal)</title>
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;max-width:900px;margin:32px auto;padding:0 16px}
+    textarea{width:100%;height:180px;margin-top:8px}
+    input[type=text]{width:100%;padding:8px}
+    button{padding:8px 12px;margin:6px 4px}
+    .note{border:1px solid #ddd;padding:12px;border-radius:6px;margin:8px 0}
+  </style>
+</head>
+<body>
+  <h1>AWS Notes Sharing — Minimal</h1>
+  <div id="editor">
+    <h2 id="editorTitle">Create Note</h2>
+    <input id="noteTitle" placeholder="Title" />
+    <textarea id="noteContent" placeholder="Write your note here..."></textarea>
+    <div>
+      <button id="saveBtn">Save</button>
+      <button id="clearBtn">Clear</button>
+    </div>
+  </div>
+
+  <h2>All Notes</h2>
+  <div id="notesContainer">Loading...</div>
+
+  <script>
+    // Replace with your deployed API Gateway base URL, e.g. https://abc123.execute-api.us-east-1.amazonaws.com/prod
+    const API_BASE = 'REPLACE_WITH_API_BASE_URL';
+    const TABLE_NOTES_PATH = '/notes';
+
+    let currentNoteId = null;
+
+    document.getElementById('saveBtn').onclick = saveNote;
+    document.getElementById('clearBtn').onclick = clearForm;
+
+    async function loadNotes() {
+      const res = await fetch(`${API_BASE}${TABLE_NOTES_PATH}`);
+      if (!res.ok) { document.getElementById('notesContainer').innerText = 'Failed to load'; return; }
+      const notes = await res.json();
+      renderNotes(notes || []);
+    }
+
+    function renderNotes(notes){
+      const c = document.getElementById('notesContainer');
+      if (!notes.length) { c.innerHTML = '<i>No notes yet</i>'; return; }
+      c.innerHTML = '';
+      notes.forEach(n => {
+        const d = document.createElement('div'); d.className = 'note';
+        d.innerHTML = `
+          <strong>${escapeHtml(n.title || '(no title)')}</strong>
+          <div style="margin:8px 0">${escapeHtml(n.content || '')}</div>
+          <small>${n.timestamp ? new Date(n.timestamp).toLocaleString() : ''}</small>
+          <div style="margin-top:8px">
+            <button data-id="${n.noteId}" class="edit">Edit</button>
+            <button data-id="${n.noteId}" class="del">Delete</button>
+            <button data-id="${n.noteId}" class="share">Share</button>
+          </div>
+        `;
+        c.appendChild(d);
+      });
+      // attach handlers
+      document.querySelectorAll('button.edit').forEach(b=>b.onclick = e => { const id=b.dataset.id; const note = notes.find(x=>x.noteId===id); editNote(note); });
+      document.querySelectorAll('button.del').forEach(b=>b.onclick = e => deleteNote(b.dataset.id));
+      document.querySelectorAll('button.share').forEach(b=>b.onclick = e => shareNote(b.dataset.id));
+    }
+
+    function editNote(note){ currentNoteId = note.noteId; document.getElementById('editorTitle').innerText = 'Edit Note'; document.getElementById('noteTitle').value = note.title || ''; document.getElementById('noteContent').value = note.content || ''; window.scrollTo(0,0); }
+
+    async function saveNote(){
+      const title = document.getElementById('noteTitle').value.trim();
+      const content = document.getElementById('noteContent').value.trim();
+      if (!title && !content) { alert('Write something'); return; }
+      const body = { title, content };
+      let method = 'POST';
+      let url = `${API_BASE}${TABLE_NOTES_PATH}`;
+      if (currentNoteId) { method = 'PUT'; body.noteId = currentNoteId; }
+      const res = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(body)});
+      if (!res.ok) { alert('Save failed'); return; }
+      clearForm();
+      loadNotes();
+      alert('Saved');
+    }
+
+    async function deleteNote(id){ if(!confirm('Delete?')) return; const res = await fetch(`${API_BASE}${TABLE_NOTES_PATH}/${id}`, { method:'DELETE' }); if (!res.ok) { alert('Delete failed'); return; } loadNotes(); alert('Deleted'); }
+
+    function shareNote(id){ const url = `${window.location.origin}${window.location.pathname}?note=${encodeURIComponent(id)}`; navigator.clipboard.writeText(url); alert('Share link copied'); }
+
+    function clearForm(){ currentNoteId = null; document.getElementById('editorTitle').innerText = 'Create Note'; document.getElementById('noteTitle').value=''; document.getElementById('noteContent').value=''; }
+
+    function escapeHtml(s){ if(!s) return ''; return s.replace(/[&<>\\\"]/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c])); }
+
+    // If page has ?note=ID then load that single note
+    async function tryLoadShared(){ const params = new URLSearchParams(window.location.search); const noteId = params.get('note'); if (!noteId) return; const res = await fetch(`${API_BASE}${TABLE_NOTES_PATH}?noteId=${encodeURIComponent(noteId)}`); if (!res.ok) return; const data = await res.json(); if (Array.isArray(data)) { const n = data.find(x=>x.noteId===noteId); if (n) editNote(n); } else if (data && data.noteId) { editNote(data); } }
+
+    // initial
+    loadNotes();
+    tryLoadShared();
+  </script>
+</body>
+</html>
