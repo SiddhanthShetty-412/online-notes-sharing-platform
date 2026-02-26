@@ -2,58 +2,105 @@
 
 ## 💡 **Description**
 
-The **Online Notes Sharing System** is a web application designed to facilitate the seamless sharing of notes among users. Developed with a combination of **HTML**, **CSS**, **JavaScript**, **jQuery**, **AJAX**, **PHP**, and **MySQL**, this platform allows users to create accounts, securely log in, and easily upload and share notes in PDF format. Users can categorize their notes into different categories, making it simple for others to find and access relevant materials. With the ability to upload up to 4 PDFs at a time, this system offers a user-friendly and efficient way to manage and share academic content.
+The **Online Notes Sharing System** is a serverless web application designed to facilitate the seamless sharing of notes among users. Developed with **HTML**, **CSS**, **JavaScript**, **AWS Lambda**, **API Gateway**, and **DynamoDB**, this platform allows users to create, update, delete, and share notes effortlessly. Users can write and organize their notes through a clean interface, with all data securely stored and managed in the cloud using AWS services.
+
+---
 
 ## 🚀 **Features**
 
-* **🔒 Signup/Login:**  Allows users to create an account and securely sign in to the platform.  
-* **📤 Share Notes:**  Users can upload and share notes by uploading PDF files.  
-* **📂 Upload Limit:**  Users can upload up to 4 PDFs at once, making it easy to share multiple files.  
-* **📚 Categorize Notes:**  Upload notes in different categories (e.g., subjects, topics) for better organization and easy access.  
-* **🔄 AJAX Integration:**  Enables seamless interactions without needing to refresh the page, providing a smooth and dynamic experience.  
-* **🗃️ MySQL Database:**  Stores user accounts, uploaded notes, and categories, ensuring secure and reliable data management.  
-* **🎯 User-Friendly Interface:**  Simple and intuitive design that ensures an easy browsing and uploading experience for all users.  
+* **📝 Create Notes:** Users can write and save notes with a title and content instantly.
+* **✏️ Edit Notes:** Easily update existing notes with a single click.
+* **🗑️ Delete Notes:** Remove notes you no longer need with a confirmation prompt.
+* **🔗 Share Notes:** Generate and copy a shareable link for any note to share with others.
+* **⚡ Serverless Backend:** Powered by AWS Lambda functions for scalable, cost-efficient server-side logic.
+* **🗃️ DynamoDB Storage:** All notes are stored securely in AWS DynamoDB with fast read/write access.
+* **🌐 API Gateway Integration:** RESTful API endpoints manage all CRUD operations seamlessly.
+* **🎯 User-Friendly Interface:** Simple and intuitive design for easy note browsing and management.
+
+---
 
 ## 💻 **Technologies Used**
 
-* **🧱 HTML:**  Structures the web pages and the layout of the application.  
-* **🎨 CSS:**  Styles the application to ensure a clean and user-friendly interface.  
-* **⚙️ JavaScript:**  Handles dynamic interactions and user interface logic.  
-* **💻 jQuery:**  Used for DOM manipulation and AJAX calls to enhance user experience.  
-* **🔄 AJAX:**  Allows asynchronous data loading and smooth user interaction without page reloads.  
-* **🖥️ PHP:**  Handles server-side logic for user authentication and file uploads.  
-* **🗄️ MySQL:**  Stores user data, uploaded notes, and category information securely.  
+* **🧱 HTML:** Structures the web pages and layout of the application.
+* **🎨 CSS:** Styles the application for a clean and responsive interface.
+* **⚙️ JavaScript (Vanilla):** Handles dynamic interactions, fetch API calls, and UI logic.
+* **☁️ AWS Lambda:** Serverless functions that handle all backend logic including create, read, update, and delete operations.
+* **🔗 AWS API Gateway:** Exposes RESTful HTTP endpoints that trigger the Lambda functions.
+* **🗄️ AWS DynamoDB:** NoSQL database that stores all notes data securely in the cloud.
+
+---
+
+## 🏗️ **Architecture Overview**
+
+```
+Browser (index.html)
+      │
+      ▼
+AWS API Gateway  (REST Endpoints)
+      │
+      ├── POST   /notes        → createNote.js  (Lambda)
+      ├── GET    /notes        → getAllNotes.js  (Lambda)
+      ├── PUT    /notes        → updateNote.js   (Lambda)
+      └── DELETE /notes/{id}  → deleteNote.js   (Lambda)
+                                        │
+                                        ▼
+                                 AWS DynamoDB
+                                 (NotesTable)
+```
+
+---
 
 ## 🎯 **Ideal For**
 
-* **🎓 Students:**  Looking for a platform to share study notes and materials with peers.  
-* **👩‍🏫 Educators:**  Sharing lecture notes, resources, and materials for their students.  
-* **🧑‍💼 Professionals:**  Sharing work-related documents and notes in a secure manner.  
-* **🌍 Anyone:**  Who needs to organize and share notes and documents efficiently.  
+* **🎓 Students:** Looking for a platform to write and share study notes with peers.
+* **👩‍🏫 Educators:** Sharing lecture notes and resources with students.
+* **🧑‍💼 Professionals:** Managing and sharing work-related notes securely in the cloud.
+* **🌍 Anyone:** Who needs a simple, fast, and reliable way to organize and share notes online.
+
+---
 
 ## ⚙️ **How to Run**
 
-1. **📂 Clone the repository:**  
-   `git clone <repository_url>`
+1. **📂 Clone the repository:**
+   ```bash
+   git clone <repository_url>
+   cd online-notes-sharing-platform
+   ```
 
-2. **🖥️ Navigate to the directory:**  
-   `cd Online_Notes_Sharing_System`
+2. **☁️ Set up AWS Services:**
+   - Create a **DynamoDB** table named `NotesTable` with `noteId` as the partition key.
+   - Deploy each Lambda function (`createNote.js`, `getAllNotes.js`, `updateNote.js`, `deleteNote.js`) to **AWS Lambda**.
+   - Set the `TABLE_NAME` environment variable to `NotesTable` in each Lambda function.
 
-3. **🗄️ Set up the database:**  
-   Create a MySQL database and import the provided SQL file to set up the necessary tables.
+3. **🔗 Configure API Gateway:**
+   - Create a REST API in **AWS API Gateway**.
+   - Map the following routes to their respective Lambda functions:
+     - `POST /notes` → `createNote`
+     - `GET /notes` → `getAllNotes`
+     - `PUT /notes` → `updateNote`
+     - `DELETE /notes/{noteId}` → `deleteNote`
+   - Deploy the API and copy the **base URL**.
 
-4. **⚙️ Configure the PHP files:**  
-   Update the database connection details in the PHP files (usually in `config.php`).
+4. **🌐 Configure the Frontend:**
+   - Open `index.html` and replace `REPLACE_WITH_API_BASE_URL` with your API Gateway base URL:
+     ```js
+     const API_BASE = 'https://your-api-id.execute-api.us-east-1.amazonaws.com/prod';
+     ```
 
-5. **🚀 Install the required server:**  
-   Make sure you have a local or remote server (e.g., XAMPP, WAMP) to run PHP files.
+5. **🚀 Launch the App:**
+   - Open `index.html` directly in a browser or host it on **AWS S3**, **Netlify**, or **GitHub Pages**.
 
-6. **🌐 Start the server:**  
-   Launch the server and open the application in your browser at `http://localhost/<your_project_directory>`.
-
-7. **👍 Use the system:**  
-   Register a new account, log in, and begin uploading and categorizing your notes!
-   
 ---
 
-Enjoy sharing and organizing your notes! 📚✨
+## 🧪 **Local Lambda Testing**
+
+You can test Lambda functions locally using the provided `runLambdaTest.js` tool:
+
+```bash
+node tools/runLambdaTest.js createNote
+node tools/runLambdaTest.js getAllNotes
+node tools/runLambdaTest.js updateNote
+node tools/runLambdaTest.js deleteNote
+```
+
+> **Note:** Local testing uses mock events and requires AWS credentials configured via `aws configure` for DynamoDB access.
