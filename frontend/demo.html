@@ -1,0 +1,101 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Notes Demo</title>
+    <style>
+      body { font-family: Arial, sans-serif; max-width: 900px; margin: 2rem auto; }
+      input, select, textarea { display:block; margin: .5rem 0; padding:.4rem; width:100%; }
+      .row { display:flex; gap:1rem; }
+      .card { border:1px solid #ddd; padding:1rem; margin:.5rem 0; }
+    </style>
+  </head>
+  <body>
+    <h1>Notes Platform - Demo</h1>
+
+    <section id="auth">
+      <h2>Register / Login</h2>
+      <input id="name" placeholder="Name (for register)" />
+      <input id="email" placeholder="Email" />
+      <input id="password" placeholder="Password" type="password" />
+      <select id="role"><option value="student">Student</option><option value="teacher">Teacher</option></select>
+      <button id="btnRegister">Register</button>
+      <button id="btnLogin">Login</button>
+      <div id="userInfo"></div>
+    </section>
+
+    <section id="uploadSection" style="display:none;">
+      <h2>Upload Note</h2>
+      <input id="title" placeholder="Title" />
+      <input id="subject" placeholder="Subject" />
+      <input id="semester" placeholder="Semester" />
+      <input id="tags" placeholder="tags (comma)" />
+      <textarea id="description" placeholder="Description"></textarea>
+      <input type="file" id="file" />
+      <button id="btnUpload">Upload</button>
+    </section>
+
+    <section>
+      <h2>Notes</h2>
+      <div id="notes"></div>
+      <button id="refresh">Refresh</button>
+    </section>
+
+    <script>
+      const API = 'http://localhost:3000';
+      let token = null;
+
+      function setUser(user, t) {
+        token = t;
+        document.getElementById('userInfo').innerText = user ? `Logged: ${user.email} (${user.role})` : 'Not logged';
+        document.getElementById('uploadSection').style.display = user ? 'block' : 'none';
+      }
+
+      document.getElementById('btnRegister').onclick = async () => {
+        const resp = await fetch(API + '/auth/register', { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ name: document.getElementById('name').value, email: document.getElementById('email').value, password: document.getElementById('password').value, role: document.getElementById('role').value }) });
+        const j = await resp.json();
+        if (j.token) setUser(j.user, j.token);
+        else alert(JSON.stringify(j));
+      };
+
+      document.getElementById('btnLogin').onclick = async () => {
+        const resp = await fetch(API + '/auth/login', { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ email: document.getElementById('email').value, password: document.getElementById('password').value }) });
+        const j = await resp.json();
+        if (j.token) setUser(j.user, j.token);
+        else alert(JSON.stringify(j));
+      };
+
+      document.getElementById('btnUpload').onclick = async () => {
+        if (!token) return alert('login first');
+        const form = new FormData();
+        form.append('title', document.getElementById('title').value);
+        form.append('subject', document.getElementById('subject').value);
+        form.append('semester', document.getElementById('semester').value);
+        form.append('tags', document.getElementById('tags').value);
+        form.append('description', document.getElementById('description').value);
+        const f = document.getElementById('file').files[0];
+        if (!f) return alert('choose file');
+        form.append('file', f);
+        const resp = await fetch(API + '/notes/upload', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token }, body: form });
+        const j = await resp.json();
+        if (j.note_id) { alert('Uploaded'); loadNotes(); } else alert(JSON.stringify(j));
+      };
+
+      async function loadNotes() {
+        const resp = await fetch(API + '/notes');
+        const j = await resp.json();
+        const wrap = document.getElementById('notes');
+        wrap.innerHTML = '';
+        (j.notes || []).forEach(n => {
+          const d = document.createElement('div'); d.className='card';
+          d.innerHTML = `<strong>${n.title}</strong> — ${n.subject} — ${n.upload_date || ''}<br>${n.description || ''}<br><a href="${API + n.file_path}" target="_blank">Download</a>`;
+          wrap.appendChild(d);
+        });
+      }
+
+      document.getElementById('refresh').onclick = loadNotes;
+      loadNotes();
+    </script>
+  </body>
+</html>
